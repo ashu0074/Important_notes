@@ -1,0 +1,127 @@
+Some Important function used 
+
+#####   "# remove the outlier of rate_per_sqft"
+******************************
+
+
+def remove__rps_outliers(df):
+    df_out = pd.DataFrame()
+    for key,subdf in df.groupby('location'):  # groupby on the basis of location 
+        m = np.mean(subdf.rate_per_sqft)     # mean
+        st = np.std(subdf.rate_per_sqft)     # standard deviation
+        reduced_df = subdf[(subdf.rate_per_sqft>(m-st)) & (subdf.rate_per_sqft < (m+st))]
+        df_out = pd.concat([df_out,reduced_df],ignore_index=True)
+    return df_out
+
+
+df7 = remove__rps_outliers(df6)
+df7.shape
+************************
+
+#####   "# from the location we plot the graph on the bh2 and bhk3"
+***********
+import matplotlib.pyplot as plt
+
+def plot_scatter_chart(df,location):
+    bhk2 = df[(df.location == location) & (df.BHK ==2)]
+    bhk3 = df[(df.location == location) & (df.BHK ==3)]
+    matplotlib.rcParams['figure.figsize'] = (15,10)
+    
+    plt.scatter(bhk2.total_sqft, bhk2.price, color='Blue', label = '2 Bhk', s = 50)
+    plt.scatter(bhk3.total_sqft, bhk3.price, color = 'green', marker = '+',label = '3 Bhk',s = 50)
+    plt.xlabel("total Square Foot")
+    plt.ylabel('Price')
+    plt.title(location)
+    plt.legend()
+    *******************
+    
+    ###### Remove the bhk outlier
+    
+******************
+def remove_bhk_outliers(df):
+    exclude_indices=np.array([])
+    for location, location_df in df.groupby('location'):
+        bhk_sats={}
+        for BHK,BHK_df in location_df.groupby('BHK'):
+            bhk_sats[BHK]={
+                'mean':np.mean(BHK_df.price_per_sqft),
+                'std':np.std(BHK_df.price_per_sqft),
+                'count':BHK_df.shape[0]
+            }
+        for BHK,BHK_df in location_df.groupby('BHK'):
+            stats=bhk_sats.get(BHK-1)
+            if stats and stats['count']>5:
+                exclude_indices=np.append(exclude_indices,BHK_df[BHK_df.price_per_sqft<(stats['mean'])].index.values)
+    return df.drop(exclude_indices,axis='index')
+df8=remove_bhk_outliers(df7)
+df8.shape
+***************************************
+
+############"Grid Search CV"
+
+
+from sklearn.model_selection import GridSearchCV
+
+from sklearn.linear_model import Lasso
+from sklearn.tree import DecisionTreeRegressor
+
+def find_best_model_using_gridsearchcv(X,y):
+    algos = {
+        'linear_regression':{
+            'model': LinearRegression(),
+            'params':{
+                'normalize':[True,False]
+            }
+        },
+        'lasso':{
+            'model':Lasso(),
+            'params':{
+                'alpha':[1,2],
+                'selection':['random','cyclic']
+            }
+        },
+        'decision_tree':{
+            'model':DecisionTreeRegressor(),
+            'params':{
+                'criterion':['mse','friedman_mse'],
+                'splitter':['best','random']
+            }
+        }
+    }
+    
+    score = []
+    cv = ShuffleSplit(n_splits = 5, test_size = 0.2, random_state = 0)
+    for algo_name, config in algos.items():
+        gs = GridSearchCV(config['model'], config['params'],cv = cv, return_train_score = False)
+        gs.fit(X,y)
+        score.append({
+            'model':algo_name,
+            'best_score':gs.best_score_,
+            'best_params':gs.best_params_
+        })
+        
+    return pd.DataFrame(score,columns=['model','best_score','best_params'])
+
+find_best_model_using_gridsearchcv(X,y)
+
+********************************************************
+
+def price_predict(location,sqft,bath,BHK):
+    loc_index = np.where(X.columns == location)[0][0]    # you to find the location -- it give "Index" 
+    x = np.zeros(len(X.columns))
+    x[0]=sqft
+    x[1]=bath
+    x[2]=BHK
+    if loc_index >=0:
+        x[loc_index] = 1                                # once we know the location we set value index =1
+    return model.predict([x])[0]
+    
+    *****************************************************
+    
+    *********************************** Merge the two data**********************************
+    eg:- movies and credits are two 2 dataframe and we want ot merge on the bases of "credit"
+
+### movies.merge(credits, on = 'title')###########
+
+*******************************************************************    
+    
