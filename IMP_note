@@ -1,5 +1,20 @@
 Some Important function used 
+**************************************************************************
+## Data Convertion  --- jason into Pandas ##
 
+Json file convert into Pandas dataframe
+
+
+final_df = pd.DataFrame()
+counter = 1
+for file in tqdm(filenames):
+    with open(file, 'r') as f:
+        df = pd.json_normalize(safe_load(f))
+        df['match_id'] = counter
+        final_df = final_df.append(df)
+        counter+=1
+        
+final_df
 #####################################################
 Groupby & Merge
 
@@ -224,7 +239,7 @@ movies['genres'] = movies['genres'].apply(collapse)
 movies['keywords'] = movies['keywords'].apply(collapse)
 
 ************************************************************
-
+11)
 Recomdedation on the bases of index postion 
 
 
@@ -240,7 +255,7 @@ def recommend(movie):
      ***********************************************************************
     
     
-    
+ 12)   
 * recommended for the movies on the bases of index position
 
 def recommend(book_name):
@@ -261,10 +276,67 @@ def recommend(book_name):
     return data
 *********************************************************************************
 
+13)
+
+cities = np.where(df['city'].isnull(),df['venue'].str.split().apply(lambda x:x[0]),df['city'])
+########################
+* np.where(df['city'].isnull() ---->True --- df['venue'].str.split().apply(lambda x:x[0])
+
+* np.where(df['city'].isnull() ----> False --- df['city] remain as it
+
+#########################################3
+  
+ **********************************************************************************************
+ 14)
+ **Rolling Function**
+ 
+* In we can roll on the data frame in perticular window 
+* eg :- last 10 rows , last 20 rows,.... etc
+* In this case each match have initally 30 balls == null and after 30 ball it start show the sum of each 30 ball windows 
+* **Extend Function**
+* Extend Function is used to append the list and form single list 
+
+#########################################
+groups = df.groupby('match_id')
+
+match_ids = df['match_id'].unique()
+last_five = []
+for id in match_ids:
+    last_five.extend(groups.get_group(id).rolling(window = 30).sum()['runs'].values.tolist())
+#################################################
+
+***********************************************************************************
+15)
+## Shuffle the dataframe ---> df.sample()
+
+final_df.sample(final_df.shape[0])
+
+*************************************************************d
+16)
+a)
+## ColumnTransfomer
+
+trf = ColumnTransformer([
+    ('trf',OneHotEncoder(sparse = False, drop='first'),['batting_team','bowling_team','city'])
+]
+, remainder = 'passthrough')
+
+b)  pipelines
+
+pipe = Pipeline(steps = [
+    ('step1',trf),
+    ('step2',StandardScaler()),
+    ('step3',XGBRegressor(n_estimators = 1000, learning_rate = 0.2, max_depth = 12, random_state = 1))
+])
 
 
+c)
+
+pipe.fit(X_train,y_train)
+y_pred = pipe.predict((X_test))
+print(r2_score(y_test,y_pred))
+print(mean_absolute_error(y_test,y_pred))
 
 
+*******************************************************************************************
 
-
-   
